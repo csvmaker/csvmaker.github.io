@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSV Allowlist Generator</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="/_sdk/element_sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
   <style>
@@ -30,37 +29,47 @@ textarea{font-family:'JetBrains Mono',monospace}
 </style>
   <style>body { box-sizing: border-box; }</style>
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
  </head>
  <body class="h-full">
-  <div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a"><!-- Toast container -->
+  <div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a">
+   <!-- Toast container -->
    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div><!-- Header -->
    <header class="fade-up" style="padding:2rem 1.5rem 0">
     <div class="max-w-3xl mx-auto text-center">
-     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style="background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42"><i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
+     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style="background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42">
+      <i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
      </div>
      <h1 id="page-title" class="text-3xl sm:text-4xl font-bold mb-2" style="color:#e2e8f0">CSV Allowlist Generator</h1>
      <p id="subtitle" class="text-sm sm:text-base" style="color:#64748b">Generate allowlist CSV files for NFT mints — supports 10,000+ addresses</p>
     </div>
    </header><!-- Main -->
    <main style="padding:1.5rem;padding-bottom:3rem">
-    <div class="max-w-3xl mx-auto flex flex-col gap-5"><!-- Wallet Addresses -->
-     <div class="fade-up-2 rounded-2xl p-5 sm:p-6 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses </label>
+    <div class="max-w-3xl mx-auto flex flex-col gap-5">
+     <!-- Wallet Addresses -->
+     <div class="fade-up-2 rounded-2xl p-5 sm:p-6 card-hover" style="background:#12152a;border:1px solid #1e2140">
+      <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses </label>
       <p class="text-xs mb-3" style="color:#64748b">One address per line. Supports 10,000+ addresses.</p><textarea id="addresses" rows="8" placeholder="0x1234...abcd
 0x5678...efgh
 0x9abc...1234" class="w-full rounded-xl p-4 text-sm resize-y focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140;focus:ring-color:#6366f1;min-height:120px"></textarea>
-      <div class="flex items-center justify-between mt-2"><span id="addr-count" class="text-xs mono" style="color:#64748b">0 addresses</span> <button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors" style="color:#64748b;background:transparent" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'"> <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear </button>
+      <div class="flex items-center justify-between mt-2">
+       <span id="addr-count" class="text-xs mono" style="color:#64748b">0 addresses</span> <button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors" style="color:#64748b;background:transparent" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'"> <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear </button>
       </div>
      </div><!-- Options Row -->
-     <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4"><!-- Mint Limit -->
-      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit </label>
+     <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Mint Limit -->
+      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
+       <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit </label>
        <p class="text-xs mb-3" style="color:#64748b">Mints per address (optional)</p><input id="mint-limit" type="number" min="1" placeholder="e.g. 3" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
       </div><!-- Price -->
-      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price in Native Token </label>
+      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
+       <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price in Native Token </label>
        <p class="text-xs mb-3" style="color:#64748b">e.g. ETH price (optional)</p><input id="price" type="text" inputmode="decimal" placeholder="e.g. 0.01" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
       </div>
      </div><!-- Preview -->
      <div class="rounded-2xl p-5 sm:p-6" style="background:#12152a;border:1px solid #1e2140">
-      <div class="flex items-center justify-between mb-3"><span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe"> <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview </span> <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#64748b">—</span>
+      <div class="flex items-center justify-between mb-3">
+       <span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe"> <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview </span> <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#64748b">—</span>
       </div>
       <div id="preview" class="rounded-xl p-4 text-xs mono overflow-x-auto" style="background:#0c0e1a;color:#94a3b8;border:1px solid #1e2140;max-height:180px;overflow-y:auto;white-space:pre">
        Add wallet addresses above to see a preview
@@ -72,41 +81,8 @@ textarea{font-family:'JetBrains Mono',monospace}
   <script>
 const defaultConfig = {
   page_title: 'CSV Allowlist Generator',
-  subtitle: 'Generate allowlist CSV files for NFT mints — supports 10,000+ addresses',
-  background_color: '#0c0e1a',
-  surface_color: '#12152a',
-  text_color: '#e2e8f0',
-  accent_color: '#818cf8',
-  btn_gradient_start: '#6366f1'
+  subtitle: 'Generate allowlist CSV files for NFT mints — supports 10,000+ addresses'
 };
-
-window.elementSdk.init({
-  defaultConfig,
-  onConfigChange: async (config) => {
-    const t = (k) => config[k] || defaultConfig[k];
-    document.getElementById('page-title').textContent = t('page_title');
-    document.getElementById('subtitle').textContent = t('subtitle');
-    const app = document.getElementById('app');
-    app.style.background = t('background_color');
-    document.querySelectorAll('#page-title').forEach(e => e.style.color = t('text_color'));
-  },
-  mapToCapabilities: (config) => ({
-    recolorables: [
-      { get:()=>config.background_color||defaultConfig.background_color, set:(v)=>{config.background_color=v;window.elementSdk.setConfig({background_color:v})} },
-      { get:()=>config.surface_color||defaultConfig.surface_color, set:(v)=>{config.surface_color=v;window.elementSdk.setConfig({surface_color:v})} },
-      { get:()=>config.text_color||defaultConfig.text_color, set:(v)=>{config.text_color=v;window.elementSdk.setConfig({text_color:v})} },
-      { get:()=>config.accent_color||defaultConfig.accent_color, set:(v)=>{config.accent_color=v;window.elementSdk.setConfig({accent_color:v})} },
-      { get:()=>config.btn_gradient_start||defaultConfig.btn_gradient_start, set:(v)=>{config.btn_gradient_start=v;window.elementSdk.setConfig({btn_gradient_start:v})} },
-    ],
-    borderables: [],
-    fontEditable: undefined,
-    fontSizeable: undefined
-  }),
-  mapToEditPanelValues: (config) => new Map([
-    ['page_title', config.page_title || defaultConfig.page_title],
-    ['subtitle', config.subtitle || defaultConfig.subtitle]
-  ])
-});
 
 const addrEl = document.getElementById('addresses');
 const countEl = document.getElementById('addr-count');
@@ -214,5 +190,5 @@ function generateCSV() {
 
 lucide.createIcons();
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc5680c94f39cba',t:'MTc3ODg4MjMzMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc5999687d99cba',t:'MTc3ODg4NDM2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
