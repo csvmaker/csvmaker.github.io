@@ -32,44 +32,37 @@ textarea{font-family:'JetBrains Mono',monospace}
   <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
  </head>
  <body class="h-full">
-  <div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a">
-   <!-- Toast container -->
+  <div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a"><!-- Toast container -->
    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div><!-- Header -->
    <header class="fade-up" style="padding:2rem 1.5rem 0">
     <div class="max-w-3xl mx-auto text-center">
-     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style="background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42">
-      <i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
+     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style="background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42"><i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
      </div>
      <h1 id="page-title" class="text-3xl sm:text-4xl font-bold mb-2" style="color:#e2e8f0">CSV Allowlist Generator</h1>
      <p id="subtitle" class="text-sm sm:text-base" style="color:#64748b">Generate allowlist CSV files for NFT mints — supports 10,000+ addresses</p>
     </div>
    </header><!-- Main -->
    <main style="padding:1.5rem;padding-bottom:3rem">
-    <div class="max-w-3xl mx-auto flex flex-col gap-5">
-     <!-- Wallet Addresses -->
-     <div class="fade-up-2 rounded-2xl p-5 sm:p-6 card-hover" style="background:#12152a;border:1px solid #1e2140">
-      <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses </label>
-      <p class="text-xs mb-3" style="color:#64748b">One address per line. Supports 10,000+ addresses.</p><textarea id="addresses" rows="8" placeholder="0x1234...abcd
+    <div class="max-w-3xl mx-auto flex flex-col gap-5"><!-- Wallet Addresses -->
+     <div class="fade-up-2 rounded-2xl p-5 sm:p-6 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses </label>
+      <p class="text-xs mb-3" style="color:#64748b">One address per line. Supports 10,000+ addresses. Duplicates will be highlighted in red.</p><textarea id="addresses" rows="8" placeholder="0x1234...abcd
 0x5678...efgh
 0x9abc...1234" class="w-full rounded-xl p-4 text-sm resize-y focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140;focus:ring-color:#6366f1;min-height:120px"></textarea>
       <div class="flex items-center justify-between mt-2">
-       <span id="addr-count" class="text-xs mono" style="color:#64748b">0 addresses</span> <button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors" style="color:#64748b;background:transparent" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'"> <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear </button>
+       <div class="flex items-center gap-3"><span id="addr-count" class="text-xs mono" style="color:#64748b">0 addresses</span> <span id="dup-count" class="text-xs mono hidden" style="color:#f87171"></span>
+       </div><button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors" style="color:#64748b;background:transparent" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#64748b'"> <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear </button>
       </div>
      </div><!-- Options Row -->
-     <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <!-- Mint Limit -->
-      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
-       <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit </label>
+     <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4"><!-- Mint Limit -->
+      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit </label>
        <p class="text-xs mb-3" style="color:#64748b">Mints per address (optional)</p><input id="mint-limit" type="number" min="1" placeholder="e.g. 3" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
       </div><!-- Price -->
-      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
-       <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price in Native Token </label>
+      <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140"><label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe"> <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price in Native Token </label>
        <p class="text-xs mb-3" style="color:#64748b">e.g. ETH price (optional)</p><input id="price" type="text" inputmode="decimal" placeholder="e.g. 0.01" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
       </div>
      </div><!-- Preview -->
      <div class="rounded-2xl p-5 sm:p-6" style="background:#12152a;border:1px solid #1e2140">
-      <div class="flex items-center justify-between mb-3">
-       <span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe"> <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview </span> <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#64748b">—</span>
+      <div class="flex items-center justify-between mb-3"><span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe"> <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview </span> <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#64748b">—</span>
       </div>
       <div id="preview" class="rounded-xl p-4 text-xs mono overflow-x-auto" style="background:#0c0e1a;color:#94a3b8;border:1px solid #1e2140;max-height:180px;overflow-y:auto;white-space:pre">
        Add wallet addresses above to see a preview
@@ -79,13 +72,9 @@ textarea{font-family:'JetBrains Mono',monospace}
    </main>
   </div>
   <script>
-const defaultConfig = {
-  page_title: 'CSV Allowlist Generator',
-  subtitle: 'Generate allowlist CSV files for NFT mints — supports 10,000+ addresses'
-};
-
 const addrEl = document.getElementById('addresses');
 const countEl = document.getElementById('addr-count');
+const dupEl = document.getElementById('dup-count');
 const previewEl = document.getElementById('preview');
 const badgeEl = document.getElementById('preview-badge');
 
@@ -93,12 +82,46 @@ function getAddresses() {
   return addrEl.value.split('\n').map(a => a.trim()).filter(a => a.length > 0);
 }
 
+function getDuplicates() {
+  const addrs = getAddresses();
+  const seen = new Set();
+  const dups = new Set();
+  for (const a of addrs) {
+    const lower = a.toLowerCase();
+    if (seen.has(lower)) {
+      dups.add(lower);
+    }
+    seen.add(lower);
+  }
+  return dups;
+}
+
+function highlightDuplicates() {
+  const dups = getDuplicates();
+  const addrs = getAddresses();
+  const lines = addrEl.value.split('\n');
+  
+  // Only update if there are duplicates
+  if (dups.size > 0) {
+    dupEl.textContent = dups.size + ' duplicate address' + (dups.size !== 1 ? 'es' : '') + ' detected';
+    dupEl.classList.remove('hidden');
+  } else {
+    dupEl.classList.add('hidden');
+  }
+}
+
 function updatePreview() {
   const addrs = getAddresses();
+  const dups = getDuplicates();
   const ml = document.getElementById('mint-limit').value.trim();
   const pr = document.getElementById('price').value.trim();
   const count = addrs.length;
+  
+  // Count unique addresses
+  const uniqueCount = addrs.filter(a => !dups.has(a.toLowerCase())).length;
+  
   countEl.textContent = count + ' address' + (count !== 1 ? 'es' : '');
+  highlightDuplicates();
 
   if (count === 0) {
     previewEl.textContent = 'Add wallet addresses above to see a preview';
@@ -124,7 +147,7 @@ function updatePreview() {
   if (count > 5) text += '\n... and ' + (count - 5) + ' more rows';
 
   previewEl.textContent = text;
-  badgeEl.textContent = count + ' rows';
+  badgeEl.textContent = uniqueCount + ' unique rows';
 }
 
 addrEl.addEventListener('input', updatePreview);
@@ -151,7 +174,17 @@ function showToast(msg, type) {
 
 function generateCSV() {
   const addrs = getAddresses();
-  if (addrs.length === 0) { showToast('Please add at least one wallet address', 'error'); return; }
+  const dups = getDuplicates();
+  
+  if (addrs.length === 0) { 
+    showToast('Please add at least one wallet address', 'error'); 
+    return; 
+  }
+  
+  if (dups.size > 0) {
+    showToast('Remove duplicate addresses before generating CSV', 'error');
+    return;
+  }
 
   const ml = document.getElementById('mint-limit').value.trim();
   const pr = document.getElementById('price').value.trim();
@@ -190,5 +223,5 @@ function generateCSV() {
 
 lucide.createIcons();
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc5999687d99cba',t:'MTc3ODg4NDM2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc5a0d153b50ed7',t:'MTc3ODg4NDY1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
