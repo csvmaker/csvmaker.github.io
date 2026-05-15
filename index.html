@@ -189,9 +189,9 @@ function generateCSV() {
   const ml = document.getElementById('mint-limit').value.trim();
   const pr = document.getElementById('price').value.trim();
 
-  let header = 'address';
-  if (ml) header += ',mintLimit';
-  if (pr) header += ',price';
+  let header = 'Wallet address';
+  if (ml) header += ',Custom mint limit (optional)';
+  if (pr) header += ',Custom price in native token e.g. ETH (optional)';
 
   // Build CSV in chunks for large datasets
   const chunks = [header + '\n'];
