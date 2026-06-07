@@ -265,9 +265,9 @@ function generateCSV() {
   }
   var ml = mintInput.value.trim();
   var pr = priceInput.value.trim();
-  var header = 'address';
-  if (ml) header += ',mintLimit';
-  if (pr) header += ',price';
+  var header = 'Wallet address';
+  if (ml) header += ',Custom mint limit (optional)';
+  if (pr) header += ',Custom price in native token e.g. ETH (optional)';
 
   var chunks = [header + '\n'];
   var batch = 5000;
