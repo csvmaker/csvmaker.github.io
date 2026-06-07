@@ -226,9 +226,9 @@ function refreshPreview() {
     return;
   }
 
-  var header = 'address';
-  if (ml) header += ',mintLimit';
-  if (pr) header += ',price';
+  var header = 'Wallet address';
+  if (ml) header += ',Custom mint limit (optional)';
+  if (pr) header += ',Custom price in native token e.g. ETH (optional)';
 
   var lines = [header];
   var limit = Math.min(unique.length, 6);
