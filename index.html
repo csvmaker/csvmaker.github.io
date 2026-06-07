@@ -1,428 +1,319 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="bn" style="height:100%;margin:0;background:#0c0e1a">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CSV Allowlist Generator — Fast Dupe Detection</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:'Outfit',sans-serif; background:#0c0e1a;}
-    .mono{font-family:'JetBrains Mono',monospace}
-    textarea{font-family:'JetBrains Mono',monospace}
-    .glow{box-shadow:0 0 40px rgba(99,102,241,0.15)}
-    .card-hover{transition:all .2s ease}
-    .card-hover:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,0.25)}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-    .fade-up{animation:fadeUp .5s ease both}
-    .fade-up-2{animation:fadeUp .5s ease .1s both}
-    .fade-up-3{animation:fadeUp .5s ease .2s both}
-    .toast-in{animation:fadeUp .3s ease both}
-    .toast-out{animation:fadeOut .3s ease both}
-    @keyframes fadeOut{to{opacity:0;transform:translateY(-10px)}}
-    ::-webkit-scrollbar{width:6px}
-    ::-webkit-scrollbar-track{background:#0c0e1a}
-    ::-webkit-scrollbar-thumb{background:#6366f1;border-radius:3px}
-    .duplicate-line-highlight {
-      background-color: rgba(248, 113, 113, 0.18);
-      border-left: 3px solid #f87171;
-    }
-    .dup-badge {
-      background: #2a1a1f;
-      border: 1px solid #f87171;
-      color: #fca5a5;
-    }
-    .fast-textarea {
-      transition: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:#0c0e1a;color:#e2e8f0;min-height:100vh;padding:0 0 3rem}
+.mono{font-family:'JetBrains Mono',monospace}
+header{padding:2rem 1.5rem 0;text-align:center;margin-bottom:1.5rem}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:500;background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42;margin-bottom:12px}
+h1{font-size:clamp(1.6rem,4vw,2.2rem);font-weight:700;color:#e2e8f0;margin-bottom:6px}
+.subtitle{font-size:13px;color:#64748b}
+main{max-width:700px;margin:0 auto;padding:0 1rem;display:flex;flex-direction:column;gap:16px}
+.card{background:#12152a;border:1px solid #1e2140;border-radius:16px;padding:1.25rem 1.5rem}
+.card-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#c7d2fe;margin-bottom:4px}
+.card-desc{font-size:12px;color:#64748b;margin-bottom:12px}
+.svg-icon{display:inline-block;vertical-align:middle;flex-shrink:0}
+textarea,input[type=number],input[type=text]{background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140;border-radius:12px;font-family:'JetBrains Mono',monospace;font-size:13px;width:100%;padding:12px;outline:none;resize:vertical;transition:border-color .2s;caret-color:#818cf8}
+textarea:focus,input:focus{border-color:#6366f1}
+input[type=number],input[type=text]{resize:none;font-size:13px;padding:10px 12px}
+.textarea-wrap{position:relative}
+.row-stats{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:10px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 8px;border-radius:6px;background:#0c0e1a;color:#818cf8}
+.dup-badge{background:#2a1a1f;color:#fca5a5;border:1px solid #f8717150}
+.clear-btn{display:flex;align-items:center;gap:4px;font-size:12px;color:#94a3b8;background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background .2s}
+.clear-btn:hover{background:#1e1f30}
+.dup-warn{display:none;margin-top:12px;background:#2a1418;border:1px solid #f8717150;border-radius:10px;padding:12px;font-size:12px;color:#fda4a4}
+.dup-warn.visible{display:block}
+.dup-header{display:flex;align-items:center;gap:6px;font-weight:600;color:#fca5a5;margin-bottom:8px}
+.dup-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dup-chip{background:#0c0e1a;border:1px solid #f8717150;border-radius:5px;padding:2px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#fda4a4}
+.dup-note{font-size:11px;color:#f87171a0;margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.grid2{grid-template-columns:1fr}}
+.preview-box{background:#0c0e1a;border:1px solid #1e2140;border-radius:10px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#94a3b8;max-height:180px;overflow-y:auto;white-space:pre;word-break:break-all;margin-top:8px}
+.preview-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.preview-pill{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:999px;background:#1e2140;color:#94a3b8}
+.gen-btn{width:100%;padding:14px;border-radius:16px;font-family:'Outfit',sans-serif;font-weight:600;font-size:15px;border:none;cursor:pointer;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s;box-shadow:0 0 30px rgba(99,102,241,0.2)}
+.gen-btn:hover{opacity:.9}
+.gen-btn:active{transform:scale(.98)}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed}
+#toast-container{position:fixed;top:12px;right:12px;z-index:100;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;border:1px solid #ffffff25;animation:fadeUp .3s ease both}
+.toast-success{background:#065f46}
+.toast-error{background:#7f1d1d}
+.toast-info{background:#1e3a8a}
+.toast-out{animation:fadeOut .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeOut{to{opacity:0;transform:translateY(-8px)}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#0c0e1a}::-webkit-scrollbar-thumb{background:#6366f1;border-radius:3px}
+</style>
 </head>
-<body class="h-full">
-<div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a">
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
+<body>
+<div id="toast-container"></div>
 
-  <!-- Header -->
-  <header class="fade-up" style="padding:2rem 1.5rem 0">
-    <div class="max-w-3xl mx-auto text-center">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style="background:#1a1d2e;color:#818cf8;border:1px solid #2a2d42">
-        <i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
-      </div>
-      <h1 class="text-3xl sm:text-4xl font-bold mb-2" style="color:#e2e8f0">CSV Allowlist Generator</h1>
-      <p class="text-sm sm:text-base" style="color:#64748b">Generate allowlist CSV for NFT mints — 10,000+ addresses · Fast duplicate detection with first 15 chars preview</p>
+<header>
+  <div class="chip">
+    <svg class="svg-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    CSV TOOL
+  </div>
+  <h1>CSV Allowlist Generator</h1>
+  <p class="subtitle">NFT মিন্টের জন্য allowlist CSV তৈরি করুন · 10,000+ ঠিকানা সমর্থিত · ডুপ্লিকেট ডিটেকশন</p>
+</header>
+
+<main>
+  <!-- Wallet Input -->
+  <div class="card">
+    <div class="card-label">
+      <svg class="svg-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M16 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="#818cf8" stroke="none"/><path d="M2 10h20"/></svg>
+      Wallet Addresses
     </div>
-  </header>
-
-  <main style="padding:1.5rem;padding-bottom:3rem">
-    <div class="max-w-3xl mx-auto flex flex-col gap-5">
-      <!-- Wallet Addresses Card -->
-      <div class="fade-up-2 rounded-2xl p-5 sm:p-6 card-hover" style="background:#12152a;border:1px solid #1e2140">
-        <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
-          <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses
-        </label>
-        <p class="text-xs mb-3" style="color:#64748b">One address per line (EVM format, 0x...). Supports 10,000+ addresses. Duplicates are highlighted & preview shows first 15 characters.</p>
-        
-        <!-- optimized textarea with async duplicate marking (line-level highlight via underlying wrapper) -->
-        <div class="relative w-full rounded-xl overflow-hidden" style="border:1px solid #1e2140; background:#0c0e1a;">
-          <textarea id="addresses" rows="10" placeholder="0x1234...abcd&#10;0x5678...efgh&#10;0x9abc...1234" class="fast-textarea w-full rounded-xl p-4 text-sm resize-y focus:outline-none focus:ring-2 transition-all" style="background:#0c0e1a;color:#e2e8f0;border:none;line-height:1.5;caret-color:#818cf8; outline:none;"></textarea>
-        </div>
-        
-        <!-- Stats + Duplicate info -->
-        <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
-          <div class="flex items-center gap-3 flex-wrap">
-            <span id="addr-count" class="text-xs mono px-2 py-1 rounded-md" style="background:#0c0e1a;color:#818cf8">0 addresses</span>
-            <span id="dup-count-badge" class="text-xs mono hidden px-2 py-1 rounded-md gap-1 items-center" style="background:#2a1a1f;color:#fca5a5;border-left:2px solid #f87171"></span>
-          </div>
-          <button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[#1e1f30]" style="color:#94a3b8">
-            <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear
-          </button>
-        </div>
-        
-        <!-- Duplicate preview box: shows first 15 chars of each duplicate address -->
-        <div id="duplicate-warning-box" class="mt-3 text-xs rounded-lg p-3 hidden" style="background:#2a1418; border:1px solid #f8717150; color:#fda4a4">
-          <div class="flex items-start gap-2">
-            <i data-lucide="alert-triangle" style="width:14px;height:14px; margin-top:2px; flex-shrink:0;"></i>
-            <div>
-              <span class="font-semibold text-rose-300">Duplicate addresses detected</span>
-              <div id="duplicate-preview-list" class="flex flex-wrap gap-1.5 mt-1.5"></div>
-              <div class="text-rose-300/70 text-[11px] mt-2">Remove or merge duplicates before generating CSV</div>
-            </div>
-          </div>
-        </div>
+    <p class="card-desc">প্রতি লাইনে একটি ঠিকানা (EVM ফরম্যাট, 0x...)। ডুপ্লিকেট থাকলে সরাসরি দেখাবে।</p>
+    <div class="textarea-wrap">
+      <textarea id="addresses" rows="10" placeholder="0x1234...abcd&#10;0x5678...efgh&#10;0x9abc...1234" spellcheck="false"></textarea>
+    </div>
+    <div class="row-stats">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="badge mono" id="addr-count">0 ঠিকানা</span>
+        <span class="badge dup-badge mono" id="dup-badge" style="display:none"></span>
       </div>
-
-      <!-- Options Row -->
-      <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
-          <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
-            <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit
-          </label>
-          <p class="text-xs mb-3" style="color:#64748b">Mints per address (optional)</p>
-          <input id="mint-limit" type="number" min="1" placeholder="e.g. 3" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
-        </div>
-        <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
-          <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
-            <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price (Native Token)
-          </label>
-          <p class="text-xs mb-3" style="color:#64748b">e.g. ETH price (optional)</p>
-          <input id="price" type="text" inputmode="decimal" placeholder="0.01" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
-        </div>
-      </div>
-
-      <!-- CSV Preview -->
-      <div class="rounded-2xl p-5 sm:p-6" style="background:#12152a;border:1px solid #1e2140">
-        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe">
-            <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview
-          </span>
-          <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#94a3b8">—</span>
-        </div>
-        <div id="preview" class="rounded-xl p-4 text-xs mono overflow-x-auto" style="background:#0c0e1a;color:#94a3b8;border:1px solid #1e2140;max-height:200px;overflow-y:auto;white-space:pre">Add wallet addresses to see preview</div>
-      </div>
-
-      <!-- Generate Button -->
-      <button onclick="generateCSV()" id="gen-btn" class="w-full py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all glow" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
-        <i data-lucide="download" style="width:20px;height:20px"></i> <span>Generate & Download CSV</span>
+      <button class="clear-btn" onclick="clearAll()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        সব মুছুন
       </button>
     </div>
-  </main>
-</div>
+    <div class="dup-warn" id="dup-warn">
+      <div class="dup-header">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        ডুপ্লিকেট ঠিকানা পাওয়া গেছে
+      </div>
+      <div class="dup-chips" id="dup-chips"></div>
+      <div class="dup-note">CSV তৈরির আগে ডুপ্লিকেট সরান বা মার্জ করুন</div>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:4px">
+        <svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+        Mint Limit
+      </div>
+      <p class="card-desc">প্রতি ঠিকানায় সর্বোচ্চ মিন্ট (ঐচ্ছিক)</p>
+      <input type="number" id="mint-limit" min="1" placeholder="যেমন: 3" oninput="refreshPreview()">
+    </div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:4px">
+        <svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        Price (ETH)
+      </div>
+      <p class="card-desc">Native token মূল্য (ঐচ্ছিক)</p>
+      <input type="text" id="price" inputmode="decimal" placeholder="যেমন: 0.01" oninput="refreshPreview()">
+    </div>
+  </div>
+
+  <!-- CSV Preview -->
+  <div class="card">
+    <div class="preview-head">
+      <div class="card-label" style="margin-bottom:0">
+        <svg class="svg-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        CSV প্রিভিউ
+      </div>
+      <span class="preview-pill" id="preview-pill">—</span>
+    </div>
+    <div class="preview-box" id="preview">ওয়ালেট ঠিকানা যোগ করুন প্রিভিউ দেখতে</div>
+  </div>
+
+  <!-- Generate Button -->
+  <button class="gen-btn" id="gen-btn" onclick="generateCSV()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    CSV তৈরি করুন ও ডাউনলোড করুন
+  </button>
+</main>
 
 <script>
-  // DOM elements
-  const textarea = document.getElementById('addresses');
-  const countSpan = document.getElementById('addr-count');
-  const dupCountBadge = document.getElementById('dup-count-badge');
-  const duplicateWarningBox = document.getElementById('duplicate-warning-box');
-  const duplicatePreviewList = document.getElementById('duplicate-preview-list');
-  const previewDiv = document.getElementById('preview');
-  const previewBadge = document.getElementById('preview-badge');
-  const mintLimitInput = document.getElementById('mint-limit');
-  const priceInput = document.getElementById('price');
-  
-  // Fast duplicate analysis (lightweight, optimized for large input)
-  let lastProcessedValue = '';
-  let cachedAnalysis = {
-    rawAddrs: [],
-    uniqueOrdered: [],
-    duplicateLowerSet: new Set(),
-    duplicateDetails: [], // { preview, count, fullExample }
-    totalRaw: 0,
-    uniqueCount: 0
-  };
-  
-  // Core performant duplicate detection (O(n) using Map)
-  function analyzeDuplicatesFast(addressesArray) {
-    const lowerToOriginal = new Map(); // lower -> first original representation
-    const countMap = new Map();        // lower -> occurrence count
-    const orderMap = new Map();        // lower -> first index (unused but preserved)
-    
-    for (let i = 0; i < addressesArray.length; i++) {
-      const addr = addressesArray[i];
-      const lower = addr.toLowerCase();
-      if (!countMap.has(lower)) {
-        countMap.set(lower, 1);
-        lowerToOriginal.set(lower, addr);
-      } else {
-        countMap.set(lower, countMap.get(lower) + 1);
-      }
-    }
-    
-    const duplicateLowerSet = new Set();
-    const duplicateDetailsArr = [];
-    for (let [lower, cnt] of countMap.entries()) {
-      if (cnt > 1) {
-        duplicateLowerSet.add(lower);
-        const originalForm = lowerToOriginal.get(lower) || lower;
-        const previewChars = originalForm.length > 15 ? originalForm.substring(0, 15) + '…' : originalForm;
-        duplicateDetailsArr.push({ preview: previewChars, count: cnt, fullExample: originalForm });
-      }
-    }
-    
-    // Build unique ordered list (preserve original order, but skip duplicates after first occurrence)
-    const seenUnique = new Set();
-    const uniqueOrdered = [];
-    for (const addr of addressesArray) {
-      const lower = addr.toLowerCase();
-      if (!seenUnique.has(lower)) {
-        seenUnique.add(lower);
-        uniqueOrdered.push(addr);
-      }
-    }
-    
-    return {
-      duplicateLowerSet,
-      duplicateDetails: duplicateDetailsArr,
-      uniqueOrdered,
-      totalRaw: addressesArray.length,
-      uniqueCount: uniqueOrdered.length
-    };
+var textarea = document.getElementById('addresses');
+var countSpan = document.getElementById('addr-count');
+var dupBadge = document.getElementById('dup-badge');
+var dupWarn = document.getElementById('dup-warn');
+var dupChips = document.getElementById('dup-chips');
+var previewDiv = document.getElementById('preview');
+var previewPill = document.getElementById('preview-pill');
+var mintInput = document.getElementById('mint-limit');
+var priceInput = document.getElementById('price');
+
+var cache = { addrs: [], unique: [], dups: [], dupSet: new Set() };
+var timer = null;
+
+function getAddrs() {
+  var lines = textarea.value.split(/\r?\n/);
+  var out = [];
+  for (var i = 0; i < lines.length; i++) {
+    var t = lines[i].trim();
+    if (t) out.push(t);
   }
-  
-  // Get current address lines (trimmed, non-empty)
-  function getCurrentAddresses() {
-    const raw = textarea.value;
-    const lines = raw.split(/\r?\n/);
-    const result = [];
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-      if (trimmed.length > 0) result.push(trimmed);
-    }
-    return result;
+  return out;
+}
+
+function analyze(addrs) {
+  var cntMap = new Map();
+  var origMap = new Map();
+  for (var i = 0; i < addrs.length; i++) {
+    var lo = addrs[i].toLowerCase();
+    cntMap.set(lo, (cntMap.get(lo) || 0) + 1);
+    if (!origMap.has(lo)) origMap.set(lo, addrs[i]);
   }
-  
-  // Refresh all UI (stats, duplicate preview, CSV preview) - THROTTLED for fast typing but lightweight
-  let refreshTimer = null;
-  function refreshAllUI() {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => {
-      performRefresh();
-      refreshTimer = null;
-    }, 8); // ~8ms debounce, keeps UI responsive even with 50k lines
-  }
-  
-  function performRefresh() {
-    const addrs = getCurrentAddresses();
-    const analysis = analyzeDuplicatesFast(addrs);
-    cachedAnalysis = analysis;
-    
-    // Update count display
-    const total = analysis.totalRaw;
-    const uniqueTotal = analysis.uniqueCount;
-    countSpan.innerHTML = `${total} address${total !== 1 ? 'es' : ''} (${uniqueTotal} unique)`;
-    
-    // Update duplicate badge & warning box
-    const dupCount = analysis.duplicateLowerSet.size;
-    if (dupCount > 0) {
-      dupCountBadge.innerHTML = `<i data-lucide="alert-triangle" style="width:12px;height:12px;display:inline-block;margin-right:4px;"></i>${dupCount} duplicate address${dupCount !== 1 ? 'es' : ''}`;
-      dupCountBadge.classList.remove('hidden');
-      
-      // Build preview list of first 15 characters for each duplicate address
-      duplicatePreviewList.innerHTML = '';
-      for (const dup of analysis.duplicateDetails) {
-        const chip = document.createElement('span');
-        chip.className = 'inline-flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded text-xs mono border border-rose-500/40';
-        chip.innerHTML = `<span>${escapeHtml(dup.preview)}</span> <span class="text-rose-300/70 text-[10px]">(x${dup.count})</span>`;
-        duplicatePreviewList.appendChild(chip);
-      }
-      duplicateWarningBox.classList.remove('hidden');
-      if (window.lucide) lucide.createIcons();
-    } else {
-      dupCountBadge.classList.add('hidden');
-      duplicateWarningBox.classList.add('hidden');
-      duplicatePreviewList.innerHTML = '';
+  var dupSet = new Set();
+  var dups = [];
+  cntMap.forEach(function(cnt, lo) {
+    if (cnt > 1) {
+      dupSet.add(lo);
+      var orig = origMap.get(lo);
+      dups.push({ preview: orig.length > 15 ? orig.substring(0, 15) + '…' : orig, count: cnt });
     }
-    
-    // Update CSV preview (fast, uses unique order but preview shows actual upcoming structure)
-    updateCSVPreview(analysis, addrs);
-  }
-  
-  function escapeHtml(str) {
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-  
-  function updateCSVPreview(analysis, rawAddrsForStructure) {
-    const ml = mintLimitInput.value.trim();
-    const pr = priceInput.value.trim();
-    const hasDuplicates = analysis.duplicateLowerSet.size > 0;
-    const uniqueAddresses = analysis.uniqueOrdered;
-    const totalUniq = uniqueAddresses.length;
-    
-    if (rawAddrsForStructure.length === 0) {
-      previewDiv.textContent = 'Add wallet addresses to see CSV preview';
-      previewBadge.textContent = '—';
-      return;
-    }
-    
-    let header = 'address';
-    if (ml) header += ',mintLimit';
-    if (pr) header += ',price';
-    
-    // show first 5 unique addresses for preview (performance)
-    const previewLimit = 6;
-    const previewRows = uniqueAddresses.slice(0, previewLimit);
-    let previewBodyLines = [];
-    for (let addr of previewRows) {
-      let row = addr;
-      if (ml) row += ',' + ml;
-      if (pr) row += ',' + pr;
-      previewBodyLines.push(row);
-    }
-    let previewBody = previewBodyLines.join('\n');
-    if (totalUniq > previewLimit) {
-      previewBody += `\n... and ${totalUniq - previewLimit} more rows`;
-    }
-    
-    let finalPreview = header + '\n' + previewBody;
-    if (hasDuplicates) {
-      finalPreview = `⚠️ ${analysis.duplicateLowerSet.size} duplicate address(es) detected. Remove duplicates to generate clean CSV.\n\n--- Preview (unique addresses only) ---\n` + finalPreview;
-    }
-    previewDiv.textContent = finalPreview;
-    previewBadge.textContent = hasDuplicates ? `${analysis.duplicateLowerSet.size} duplicate(s)` : `${totalUniq} unique rows`;
-  }
-  
-  // Clear all addresses
-  window.clearAddresses = function() {
-    textarea.value = '';
-    performRefresh();
-    showToast('Address list cleared', 'info');
-  };
-  
-  // Toast
-  function showToast(msg, type = 'success') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast-in flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium shadow-lg';
-    let bgColor = '#065f46';
-    let iconSymbol = '✓';
-    if (type === 'error') { bgColor = '#7f1d1d'; iconSymbol = '✕'; }
-    else if (type === 'info') { bgColor = '#1e3a8a'; iconSymbol = 'ℹ️'; }
-    else { bgColor = '#065f46'; iconSymbol = '✓'; }
-    toast.style.cssText = `background:${bgColor};color:#fff;border:1px solid #ffffff30`;
-    toast.innerHTML = `<span>${iconSymbol}</span><span>${msg}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.className = 'toast-out';
-      setTimeout(() => toast.remove(), 300);
-    }, 3200);
-  }
-  
-  // Generate CSV with duplicate blocking
-  window.generateCSV = function() {
-    const addrs = getCurrentAddresses();
-    if (addrs.length === 0) {
-      showToast('Please add at least one wallet address', 'error');
-      return;
-    }
-    
-    const analysis = analyzeDuplicatesFast(addrs);
-    if (analysis.duplicateLowerSet.size > 0) {
-      const dupPreviews = analysis.duplicateDetails.map(d => d.preview).slice(0, 6);
-      const dupMsg = `Duplicate addresses found: ${dupPreviews.join(', ')}${analysis.duplicateDetails.length > 6 ? ' and more' : ''}. Please remove duplicates before exporting.`;
-      showToast(dupMsg, 'error');
-      return;
-    }
-    
-    const uniqueList = analysis.uniqueOrdered;
-    const ml = mintLimitInput.value.trim();
-    const pr = priceInput.value.trim();
-    
-    let header = 'Wallet address';
-    if (ml) header += ',Custom mint limit (optional)';
-    if (pr) header += ',Custom price in native token e.g. ETH (optional)';
-    
-    // Streaming / chunked CSV generation (very fast even for 100k)
-    const chunks = [header + '\n'];
-    const chunkSize = 5000; // large chunk but memory safe
-    for (let i = 0; i < uniqueList.length; i += chunkSize) {
-      const slice = uniqueList.slice(i, i + chunkSize);
-      let block = '';
-      for (let j = 0; j < slice.length; j++) {
-        const addr = slice[j];
-        block += addr;
-        if (ml) block += ',' + ml;
-        if (pr) block += ',' + pr;
-        block += '\n';
-      }
-      chunks.push(block);
-    }
-    
-    const blob = new Blob(chunks, { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'allowlist.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast(`CSV downloaded with ${uniqueList.length} unique wallet addresses`, 'success');
-  };
-  
-  // Input event handlers with fast debounce and optimized DOM updates
-  textarea.addEventListener('input', function(e) {
-    refreshAllUI();
   });
-  
-  mintLimitInput.addEventListener('input', () => {
-    updateCSVPreview(cachedAnalysis, getCurrentAddresses());
-  });
-  priceInput.addEventListener('input', () => {
-    updateCSVPreview(cachedAnalysis, getCurrentAddresses());
-  });
-  
-  // Force icon refresh after potential duplicate box updates
-  const observer = new MutationObserver(() => {
-    if (window.lucide) lucide.createIcons();
-  });
-  observer.observe(duplicateWarningBox, { childList: true, subtree: true });
-  observer.observe(dupCountBadge, { childList: true });
-  
-  // Initial load
-  window.addEventListener('load', () => {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-    performRefresh();
-    // Additional optimization: remove default textarea slow spellcheck
-    textarea.setAttribute('spellcheck', 'false');
-  });
-  
-  // small helper to instantly reflect after paste (big data)
-  textarea.addEventListener('paste', function(e) {
-    setTimeout(() => {
-      refreshAllUI();
-    }, 5);
-  });
-  
-  // for high performance: if there is huge data, we still keep responsiveness.
-  // No additional line-level background highlight on textarea itself (prevents jank), 
-  // but we clearly show duplicates list with first 15 chars as requested.
+  var seen = new Set();
+  var unique = [];
+  for (var j = 0; j < addrs.length; j++) {
+    var lo2 = addrs[j].toLowerCase();
+    if (!seen.has(lo2)) { seen.add(lo2); unique.push(addrs[j]); }
+  }
+  return { dupSet: dupSet, dups: dups, unique: unique };
+}
+
+function updateUI() {
+  var addrs = getAddrs();
+  var res = analyze(addrs);
+  cache = { addrs: addrs, unique: res.unique, dups: res.dups, dupSet: res.dupSet };
+
+  var total = addrs.length;
+  var uniq = res.unique.length;
+  countSpan.textContent = total + ' ঠিকানা (' + uniq + ' অনন্য)';
+
+  if (res.dups.length > 0) {
+    dupBadge.textContent = res.dups.length + ' ডুপ্লিকেট';
+    dupBadge.style.display = 'inline-flex';
+    dupChips.innerHTML = '';
+    for (var i = 0; i < res.dups.length; i++) {
+      var ch = document.createElement('span');
+      ch.className = 'dup-chip';
+      ch.textContent = res.dups[i].preview + ' (×' + res.dups[i].count + ')';
+      dupChips.appendChild(ch);
+    }
+    dupWarn.classList.add('visible');
+  } else {
+    dupBadge.style.display = 'none';
+    dupWarn.classList.remove('visible');
+    dupChips.innerHTML = '';
+  }
+
+  refreshPreview();
+}
+
+function refreshPreview() {
+  var addrs = cache.addrs || [];
+  var unique = cache.unique || [];
+  var dups = cache.dups || [];
+  var ml = mintInput.value.trim();
+  var pr = priceInput.value.trim();
+
+  if (addrs.length === 0) {
+    previewDiv.textContent = 'ওয়ালেট ঠিকানা যোগ করুন প্রিভিউ দেখতে';
+    previewPill.textContent = '—';
+    return;
+  }
+
+  var header = 'address';
+  if (ml) header += ',mintLimit';
+  if (pr) header += ',price';
+
+  var lines = [header];
+  var limit = Math.min(unique.length, 6);
+  for (var i = 0; i < limit; i++) {
+    var row = unique[i];
+    if (ml) row += ',' + ml;
+    if (pr) row += ',' + pr;
+    lines.push(row);
+  }
+  if (unique.length > 6) lines.push('... আরও ' + (unique.length - 6) + ' টি সারি');
+
+  var text = '';
+  if (dups.length > 0) text = '⚠️ ' + dups.length + ' টি ডুপ্লিকেট পাওয়া গেছে। সরানোর পর CSV তৈরি করুন।\n\n';
+  text += lines.join('\n');
+
+  previewDiv.textContent = text;
+  previewPill.textContent = dups.length > 0 ? dups.length + ' ডুপ্লিকেট' : unique.length + ' অনন্য সারি';
+}
+
+function clearAll() {
+  textarea.value = '';
+  cache = { addrs: [], unique: [], dups: [], dupSet: new Set() };
+  updateUI();
+  toast('সব ঠিকানা মুছে দেওয়া হয়েছে', 'info');
+}
+
+function generateCSV() {
+  var addrs = getAddrs();
+  if (addrs.length === 0) { toast('অন্তত একটি ওয়ালেট ঠিকানা যোগ করুন', 'error'); return; }
+  var res = analyze(addrs);
+  if (res.dups.length > 0) {
+    toast('ডুপ্লিকেট ঠিকানা আছে। আগে সরান: ' + res.dups.slice(0, 3).map(function(d){ return d.preview; }).join(', '), 'error');
+    return;
+  }
+  var ml = mintInput.value.trim();
+  var pr = priceInput.value.trim();
+  var header = 'address';
+  if (ml) header += ',mintLimit';
+  if (pr) header += ',price';
+
+  var chunks = [header + '\n'];
+  var batch = 5000;
+  for (var i = 0; i < res.unique.length; i += batch) {
+    var slice = res.unique.slice(i, i + batch);
+    var block = '';
+    for (var j = 0; j < slice.length; j++) {
+      block += slice[j];
+      if (ml) block += ',' + ml;
+      if (pr) block += ',' + pr;
+      block += '\n';
+    }
+    chunks.push(block);
+  }
+
+  var blob = new Blob(chunks, { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'allowlist.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(res.unique.length + ' টি অনন্য ঠিকানা সহ CSV ডাউনলোড হয়েছে ✓', 'success');
+}
+
+function toast(msg, type) {
+  var c = document.getElementById('toast-container');
+  var t = document.createElement('div');
+  t.className = 'toast toast-' + (type || 'success');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function() {
+    t.className = 'toast toast-out';
+    setTimeout(function() { t.remove(); }, 300);
+  }, 3500);
+}
+
+textarea.addEventListener('input', function() {
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(updateUI, 10);
+});
+textarea.addEventListener('paste', function() {
+  setTimeout(updateUI, 20);
+});
+
+updateUI();
 </script>
 </body>
 </html>
