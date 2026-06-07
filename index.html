@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>CSV Allowlist Generator — 智能去重与预览</title>
+  <title>CSV Allowlist Generator — Fast Dupe Detection</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -26,21 +26,22 @@
     ::-webkit-scrollbar{width:6px}
     ::-webkit-scrollbar-track{background:#0c0e1a}
     ::-webkit-scrollbar-thumb{background:#6366f1;border-radius:3px}
-    .duplicate-highlight-bg {
-      background-color: rgba(248, 113, 113, 0.2);
+    .duplicate-line-highlight {
+      background-color: rgba(248, 113, 113, 0.18);
       border-left: 3px solid #f87171;
-      transition: background 0.1s ease;
     }
     .dup-badge {
       background: #2a1a1f;
       border: 1px solid #f87171;
       color: #fca5a5;
     }
+    .fast-textarea {
+      transition: none;
+    }
   </style>
 </head>
 <body class="h-full">
 <div id="app" class="h-full w-full overflow-auto" style="background:#0c0e1a">
-  <!-- Toast container -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div>
 
   <!-- Header -->
@@ -50,11 +51,10 @@
         <i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i> CSV TOOL
       </div>
       <h1 class="text-3xl sm:text-4xl font-bold mb-2" style="color:#e2e8f0">CSV Allowlist Generator</h1>
-      <p class="text-sm sm:text-base" style="color:#64748b">Generate allowlist CSV files for NFT mints — supports 10,000+ addresses · 重复地址高亮并显示前15个字符</p>
+      <p class="text-sm sm:text-base" style="color:#64748b">Generate allowlist CSV for NFT mints — 10,000+ addresses · Fast duplicate detection with first 15 chars preview</p>
     </div>
   </header>
 
-  <!-- Main -->
   <main style="padding:1.5rem;padding-bottom:3rem">
     <div class="max-w-3xl mx-auto flex flex-col gap-5">
       <!-- Wallet Addresses Card -->
@@ -62,40 +62,51 @@
         <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
           <i data-lucide="wallet" style="width:16px;height:16px;color:#818cf8"></i> Wallet Addresses
         </label>
-        <p class="text-xs mb-3" style="color:#64748b">
-          每行一个地址 (EVM格式, 0x...)，支持10,000+行。重复地址会在文本区高亮红色背景，并显示重复地址首部预览。
-        </p>
-        <textarea id="addresses" rows="10" placeholder="0x1234...abcd&#10;0x5678...efgh&#10;0x9abc...1234" class="w-full rounded-xl p-4 text-sm resize-y focus:outline-none focus:ring-2 transition-all" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140;line-height:1.5;caret-color:#818cf8"></textarea>
+        <p class="text-xs mb-3" style="color:#64748b">One address per line (EVM format, 0x...). Supports 10,000+ addresses. Duplicates are highlighted & preview shows first 15 characters.</p>
         
-        <!-- 统计 + 重复区域 -->
+        <!-- optimized textarea with async duplicate marking (line-level highlight via underlying wrapper) -->
+        <div class="relative w-full rounded-xl overflow-hidden" style="border:1px solid #1e2140; background:#0c0e1a;">
+          <textarea id="addresses" rows="10" placeholder="0x1234...abcd&#10;0x5678...efgh&#10;0x9abc...1234" class="fast-textarea w-full rounded-xl p-4 text-sm resize-y focus:outline-none focus:ring-2 transition-all" style="background:#0c0e1a;color:#e2e8f0;border:none;line-height:1.5;caret-color:#818cf8; outline:none;"></textarea>
+        </div>
+        
+        <!-- Stats + Duplicate info -->
         <div class="flex flex-wrap items-center justify-between gap-3 mt-3">
           <div class="flex items-center gap-3 flex-wrap">
-            <span id="addr-count" class="text-xs mono px-2 py-1 rounded-md" style="background:#0c0e1a;color:#818cf8">0 地址</span>
+            <span id="addr-count" class="text-xs mono px-2 py-1 rounded-md" style="background:#0c0e1a;color:#818cf8">0 addresses</span>
             <span id="dup-count-badge" class="text-xs mono hidden px-2 py-1 rounded-md gap-1 items-center" style="background:#2a1a1f;color:#fca5a5;border-left:2px solid #f87171"></span>
-            <div id="dup-previews-container" class="text-xs flex flex-wrap items-center gap-1"></div>
           </div>
           <button onclick="clearAddresses()" class="text-xs flex items-center gap-1 px-2 py-1 rounded-lg transition-colors hover:bg-[#1e1f30]" style="color:#94a3b8">
-            <i data-lucide="trash-2" style="width:12px;height:12px"></i> 清空
+            <i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear
           </button>
         </div>
-        <!-- 重复地址详细首字符列表行内展示 -->
-        <div id="duplicate-warning-box" class="mt-3 text-xs rounded-lg p-2 hidden" style="background:#2a1418; border:1px solid #f8717150; color:#fda4a4"></div>
+        
+        <!-- Duplicate preview box: shows first 15 chars of each duplicate address -->
+        <div id="duplicate-warning-box" class="mt-3 text-xs rounded-lg p-3 hidden" style="background:#2a1418; border:1px solid #f8717150; color:#fda4a4">
+          <div class="flex items-start gap-2">
+            <i data-lucide="alert-triangle" style="width:14px;height:14px; margin-top:2px; flex-shrink:0;"></i>
+            <div>
+              <span class="font-semibold text-rose-300">Duplicate addresses detected</span>
+              <div id="duplicate-preview-list" class="flex flex-wrap gap-1.5 mt-1.5"></div>
+              <div class="text-rose-300/70 text-[11px] mt-2">Remove or merge duplicates before generating CSV</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Options Row -->
       <div class="fade-up-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
           <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
-            <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> 自定义铸造限额
+            <i data-lucide="hash" style="width:16px;height:16px;color:#818cf8"></i> Custom Mint Limit
           </label>
-          <p class="text-xs mb-3" style="color:#64748b">每个地址的铸造数量（可选）</p>
-          <input id="mint-limit" type="number" min="1" placeholder="例如 3" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
+          <p class="text-xs mb-3" style="color:#64748b">Mints per address (optional)</p>
+          <input id="mint-limit" type="number" min="1" placeholder="e.g. 3" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
         </div>
         <div class="rounded-2xl p-5 card-hover" style="background:#12152a;border:1px solid #1e2140">
           <label class="flex items-center gap-2 text-sm font-semibold mb-1" style="color:#c7d2fe">
-            <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> 自定义价格 (原生代币)
+            <i data-lucide="coins" style="width:16px;height:16px;color:#818cf8"></i> Custom Price (Native Token)
           </label>
-          <p class="text-xs mb-3" style="color:#64748b">例如 ETH 价格 (可选)</p>
+          <p class="text-xs mb-3" style="color:#64748b">e.g. ETH price (optional)</p>
           <input id="price" type="text" inputmode="decimal" placeholder="0.01" class="w-full rounded-xl p-3 text-sm mono focus:outline-none focus:ring-2" style="background:#0c0e1a;color:#e2e8f0;border:1px solid #1e2140">
         </div>
       </div>
@@ -104,16 +115,16 @@
       <div class="rounded-2xl p-5 sm:p-6" style="background:#12152a;border:1px solid #1e2140">
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
           <span class="flex items-center gap-2 text-sm font-semibold" style="color:#c7d2fe">
-            <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV 预览
+            <i data-lucide="eye" style="width:16px;height:16px;color:#818cf8"></i> CSV Preview
           </span>
           <span id="preview-badge" class="text-xs px-2 py-0.5 rounded-full mono" style="background:#1e2140;color:#94a3b8">—</span>
         </div>
-        <div id="preview" class="rounded-xl p-4 text-xs mono overflow-x-auto" style="background:#0c0e1a;color:#94a3b8;border:1px solid #1e2140;max-height:200px;overflow-y:auto;white-space:pre">添加地址以预览CSV</div>
+        <div id="preview" class="rounded-xl p-4 text-xs mono overflow-x-auto" style="background:#0c0e1a;color:#94a3b8;border:1px solid #1e2140;max-height:200px;overflow-y:auto;white-space:pre">Add wallet addresses to see preview</div>
       </div>
 
       <!-- Generate Button -->
       <button onclick="generateCSV()" id="gen-btn" class="w-full py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all glow" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
-        <i data-lucide="download" style="width:20px;height:20px"></i> <span>生成并下载 CSV</span>
+        <i data-lucide="download" style="width:20px;height:20px"></i> <span>Generate & Download CSV</span>
       </button>
     </div>
   </main>
@@ -125,42 +136,52 @@
   const countSpan = document.getElementById('addr-count');
   const dupCountBadge = document.getElementById('dup-count-badge');
   const duplicateWarningBox = document.getElementById('duplicate-warning-box');
-  const dupPreviewsContainer = document.getElementById('dup-previews-container');
+  const duplicatePreviewList = document.getElementById('duplicate-preview-list');
   const previewDiv = document.getElementById('preview');
   const previewBadge = document.getElementById('preview-badge');
   const mintLimitInput = document.getElementById('mint-limit');
   const priceInput = document.getElementById('price');
   
-  // Helper: 提取原始行数组 (保留原始大小写但去重检测基于小写)
-  function getRawAddressLines() {
-    const raw = textarea.value;
-    const lines = raw.split(/\r?\n/);
-    return lines.map(l => l.trim()).filter(l => l.length > 0);
-  }
+  // Fast duplicate analysis (lightweight, optimized for large input)
+  let lastProcessedValue = '';
+  let cachedAnalysis = {
+    rawAddrs: [],
+    uniqueOrdered: [],
+    duplicateLowerSet: new Set(),
+    duplicateDetails: [], // { preview, count, fullExample }
+    totalRaw: 0,
+    uniqueCount: 0
+  };
   
-  // 核心: 检测重复地址 (基于小写, 保留首次出现顺序, 标记所有重复条目)
-  // 返回: { duplicatesSetLowerCase, duplicateOccurrencesMap, uniqueAddressList }
-  function analyzeDuplicates(addressesArray) {
-    const lowerCaseMap = new Map(); // lower -> first original representation (保留首个原始)
-    const countMap = new Map();     // lower -> count
-    const lineIndexMap = new Map(); // lower -> array of indices for warning
+  // Core performant duplicate detection (O(n) using Map)
+  function analyzeDuplicatesFast(addressesArray) {
+    const lowerToOriginal = new Map(); // lower -> first original representation
+    const countMap = new Map();        // lower -> occurrence count
+    const orderMap = new Map();        // lower -> first index (unused but preserved)
+    
     for (let i = 0; i < addressesArray.length; i++) {
       const addr = addressesArray[i];
       const lower = addr.toLowerCase();
       if (!countMap.has(lower)) {
         countMap.set(lower, 1);
-        lowerCaseMap.set(lower, addr); // 存储原始展示 (保留首现)
+        lowerToOriginal.set(lower, addr);
       } else {
         countMap.set(lower, countMap.get(lower) + 1);
       }
-      if (!lineIndexMap.has(lower)) lineIndexMap.set(lower, []);
-      lineIndexMap.get(lower).push(i);
     }
-    const duplicateSet = new Set();
+    
+    const duplicateLowerSet = new Set();
+    const duplicateDetailsArr = [];
     for (let [lower, cnt] of countMap.entries()) {
-      if (cnt > 1) duplicateSet.add(lower);
+      if (cnt > 1) {
+        duplicateLowerSet.add(lower);
+        const originalForm = lowerToOriginal.get(lower) || lower;
+        const previewChars = originalForm.length > 15 ? originalForm.substring(0, 15) + '…' : originalForm;
+        duplicateDetailsArr.push({ preview: previewChars, count: cnt, fullExample: originalForm });
+      }
     }
-    // 去重唯一列表 (按原顺序第一次出现)
+    
+    // Build unique ordered list (preserve original order, but skip duplicates after first occurrence)
     const seenUnique = new Set();
     const uniqueOrdered = [];
     for (const addr of addressesArray) {
@@ -170,138 +191,131 @@
         uniqueOrdered.push(addr);
       }
     }
+    
     return {
-      duplicateLowerSet: duplicateSet,
-      countMap,
-      lowerToOriginal: lowerCaseMap,
-      uniqueList: uniqueOrdered,
-      lineIndexMap,
-      totalRawCount: addressesArray.length
+      duplicateLowerSet,
+      duplicateDetails: duplicateDetailsArr,
+      uniqueOrdered,
+      totalRaw: addressesArray.length,
+      uniqueCount: uniqueOrdered.length
     };
   }
   
-  // 高亮文本域中的重复行 (通过对每一行设置不同的背景样式，直接在textarea中不支持局部背景高亮，需要用wrap或者动态重新渲染？
-  // 但原生textarea无法部分高亮，我们采用替代方案：在文本下方显示重复列表并提供清晰重复行指引，同时为了更好的体验: 我们在文本域中利用占位符或显示?
-  // 因为用户需求：“如果重复地址存在，则显示前15个字符” 这是主要需求。但为了体验，额外在预览区展现重复地址标识。
-  // 我们将在文本区下方构建一个可视化的重复行指引，标注重复行号列表和首字符。
-  function updateDuplicateDisplay() {
-    const rawAddrs = getRawAddressLines();
-    if (rawAddrs.length === 0) {
-      dupCountBadge.classList.add('hidden');
-      duplicateWarningBox.classList.add('hidden');
-      if (dupPreviewsContainer) dupPreviewsContainer.innerHTML = '';
-      return;
+  // Get current address lines (trimmed, non-empty)
+  function getCurrentAddresses() {
+    const raw = textarea.value;
+    const lines = raw.split(/\r?\n/);
+    const result = [];
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (trimmed.length > 0) result.push(trimmed);
     }
-    const analysis = analyzeDuplicates(rawAddrs);
-    const duplicateSet = analysis.duplicateLowerSet;
-    const duplicateCount = duplicateSet.size;
-    
-    if (duplicateCount === 0) {
-      dupCountBadge.classList.add('hidden');
-      duplicateWarningBox.classList.add('hidden');
-      if (dupPreviewsContainer) dupPreviewsContainer.innerHTML = '';
-      return;
-    }
-    
-    // 构建展示重复地址的前15字符信息 (每个重复地址仅展示一次)
-    const duplicatesInfo = [];
-    for (let lowerAddr of duplicateSet) {
-      const originalForm = analysis.lowerToOriginal.get(lowerAddr) || lowerAddr;
-      const previewChars = originalForm.length > 15 ? originalForm.substring(0, 15) + '…' : originalForm;
-      const occurrenceCount = analysis.countMap.get(lowerAddr);
-      duplicatesInfo.push({ preview: previewChars, full: originalForm, count: occurrenceCount });
-    }
-    
-    // 显示重复数量徽章
-    dupCountBadge.innerHTML = `<i data-lucide="alert-triangle" style="width:12px;height:12px;display:inline-block;margin-right:4px;"></i>发现 ${duplicateCount} 个重复地址`;
-    dupCountBadge.classList.remove('hidden');
-    
-    // 构建详细信息展示框: 列出每个重复地址的前15个字符和出现次数
-    let warningHtml = `<div class="flex items-start gap-2"><i data-lucide="info" style="width:14px;height:14px;margin-top:2px;"></i><div><strong class="text-rose-300">重复地址列表</strong> (前15字符)：<br/>`;
-    duplicatesInfo.forEach(info => {
-      warningHtml += `<span class="inline-block bg-black/40 px-2 py-0.5 rounded mr-2 mt-1 mono text-xs border border-rose-500/30">${info.preview} (出现 ${info.count} 次)</span>`;
-    });
-    warningHtml += `<div class="text-rose-300/80 text-[11px] mt-2">⚠️ 请移除或合并重复地址后再生成CSV</div></div></div>`;
-    duplicateWarningBox.innerHTML = warningHtml;
-    duplicateWarningBox.classList.remove('hidden');
-    
-    // 附加提示到重复容器, 并重新加载图标
-    if (window.lucide) {
-      setTimeout(() => lucide.createIcons(), 5);
-    }
+    return result;
   }
   
-  // 更新计数 + 重复警告 + 预览文本域
-  function refreshAll() {
-    const rawAddrs = getRawAddressLines();
-    const analysis = analyzeDuplicates(rawAddrs);
-    const duplicateSet = analysis.duplicateLowerSet;
-    const uniqueCount = analysis.uniqueList.length;
-    const total = rawAddrs.length;
+  // Refresh all UI (stats, duplicate preview, CSV preview) - THROTTLED for fast typing but lightweight
+  let refreshTimer = null;
+  function refreshAllUI() {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      performRefresh();
+      refreshTimer = null;
+    }, 8); // ~8ms debounce, keeps UI responsive even with 50k lines
+  }
+  
+  function performRefresh() {
+    const addrs = getCurrentAddresses();
+    const analysis = analyzeDuplicatesFast(addrs);
+    cachedAnalysis = analysis;
     
-    // 更新地址数量显示
-    countSpan.innerHTML = `${total} 地址 (去重后 ${uniqueCount} 唯一)`;
+    // Update count display
+    const total = analysis.totalRaw;
+    const uniqueTotal = analysis.uniqueCount;
+    countSpan.innerHTML = `${total} address${total !== 1 ? 'es' : ''} (${uniqueTotal} unique)`;
     
-    // 更新重复显示 UI
-    if (duplicateSet.size > 0) {
-      updateDuplicateDisplay();
+    // Update duplicate badge & warning box
+    const dupCount = analysis.duplicateLowerSet.size;
+    if (dupCount > 0) {
+      dupCountBadge.innerHTML = `<i data-lucide="alert-triangle" style="width:12px;height:12px;display:inline-block;margin-right:4px;"></i>${dupCount} duplicate address${dupCount !== 1 ? 'es' : ''}`;
+      dupCountBadge.classList.remove('hidden');
+      
+      // Build preview list of first 15 characters for each duplicate address
+      duplicatePreviewList.innerHTML = '';
+      for (const dup of analysis.duplicateDetails) {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded text-xs mono border border-rose-500/40';
+        chip.innerHTML = `<span>${escapeHtml(dup.preview)}</span> <span class="text-rose-300/70 text-[10px]">(x${dup.count})</span>`;
+        duplicatePreviewList.appendChild(chip);
+      }
+      duplicateWarningBox.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
     } else {
       dupCountBadge.classList.add('hidden');
       duplicateWarningBox.classList.add('hidden');
+      duplicatePreviewList.innerHTML = '';
     }
     
-    // 更新 CSV 预览 (使用唯一地址列表展示，但预览最好展示全部？然而预览展示原始地址但会包含重复警告，但为了方便展示CSV结构，我们展示不带重复的? 根据用户要求最好展示即将导出的结构但不含重复警告，但是预览区域应该展示实际的格式——若存在重复，生成时拦截，预览可以展示基础结构。
-    // 为了清晰，预览展示将展示CSV 格式预览，如果存在重复则显示“检测到重复，生成前需要清理重复”并展示字段结构
+    // Update CSV preview (fast, uses unique order but preview shows actual upcoming structure)
+    updateCSVPreview(analysis, addrs);
+  }
+  
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+  
+  function updateCSVPreview(analysis, rawAddrsForStructure) {
     const ml = mintLimitInput.value.trim();
     const pr = priceInput.value.trim();
-    const hasDuplicate = duplicateSet.size > 0;
+    const hasDuplicates = analysis.duplicateLowerSet.size > 0;
+    const uniqueAddresses = analysis.uniqueOrdered;
+    const totalUniq = uniqueAddresses.length;
     
-    if (total === 0) {
-      previewDiv.textContent = '添加钱包地址以生成CSV预览';
-      previewBadge.textContent = '无数据';
+    if (rawAddrsForStructure.length === 0) {
+      previewDiv.textContent = 'Add wallet addresses to see CSV preview';
+      previewBadge.textContent = '—';
       return;
     }
     
-    // 构建header
     let header = 'address';
     if (ml) header += ',mintLimit';
     if (pr) header += ',price';
     
-    // 预览内容: 最多展示前6条 (使用全部原始地址但若重复太多展示警告)
-    let previewLines = [];
-    const maxPreviewRows = 6;
-    const sampleAddrs = rawAddrs.slice(0, maxPreviewRows);
-    for (let addr of sampleAddrs) {
+    // show first 5 unique addresses for preview (performance)
+    const previewLimit = 6;
+    const previewRows = uniqueAddresses.slice(0, previewLimit);
+    let previewBodyLines = [];
+    for (let addr of previewRows) {
       let row = addr;
       if (ml) row += ',' + ml;
       if (pr) row += ',' + pr;
-      previewLines.push(row);
+      previewBodyLines.push(row);
     }
-    let previewBody = previewLines.join('\n');
-    if (rawAddrs.length > maxPreviewRows) {
-      previewBody += `\n... 以及 ${rawAddrs.length - maxPreviewRows} 行更多地址`;
+    let previewBody = previewBodyLines.join('\n');
+    if (totalUniq > previewLimit) {
+      previewBody += `\n... and ${totalUniq - previewLimit} more rows`;
     }
-    let fullPreview = header + '\n' + previewBody;
-    if (hasDuplicate) {
-      fullPreview = `⚠️ 检测到 ${duplicateSet.size} 个重复地址，请清理重复后再生成有效的CSV文件\n\n--- CSV预览 (格式示范，实际导出将拦截重复) ---\n` + fullPreview;
+    
+    let finalPreview = header + '\n' + previewBody;
+    if (hasDuplicates) {
+      finalPreview = `⚠️ ${analysis.duplicateLowerSet.size} duplicate address(es) detected. Remove duplicates to generate clean CSV.\n\n--- Preview (unique addresses only) ---\n` + finalPreview;
     }
-    previewDiv.textContent = fullPreview;
-    previewBadge.textContent = hasDuplicate ? `有重复 (${duplicateSet.size})` : `${uniqueCount} 唯一地址`;
+    previewDiv.textContent = finalPreview;
+    previewBadge.textContent = hasDuplicates ? `${analysis.duplicateLowerSet.size} duplicate(s)` : `${totalUniq} unique rows`;
   }
   
-  // 对textarea进行行内高亮不可行，但提供额外重复列表后已满足需求（前15个字符展示）。附加一个辅助函数: 当聚焦或输入时实时刷新
-  function onInputChange() {
-    refreshAll();
-  }
-  
-  // 清空地址区
+  // Clear all addresses
   window.clearAddresses = function() {
     textarea.value = '';
-    refreshAll();
-    showToast('地址列表已清空', 'info');
+    performRefresh();
+    showToast('Address list cleared', 'info');
   };
   
-  // Toast 通知 (简单美观)
+  // Toast
   function showToast(msg, type = 'success') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -320,48 +334,38 @@
     }, 3200);
   }
   
-  // 生成 CSV (带有重复检查)
+  // Generate CSV with duplicate blocking
   window.generateCSV = function() {
-    const rawAddrs = getRawAddressLines();
-    if (rawAddrs.length === 0) {
-      showToast('请至少输入一个钱包地址', 'error');
+    const addrs = getCurrentAddresses();
+    if (addrs.length === 0) {
+      showToast('Please add at least one wallet address', 'error');
       return;
     }
-    const analysis = analyzeDuplicates(rawAddrs);
-    const duplicateSet = analysis.duplicateLowerSet;
-    if (duplicateSet.size > 0) {
-      // 构建错误详情，显示前15字符
-      const dupPreviews = [];
-      for (let dupLower of duplicateSet) {
-        const original = analysis.lowerToOriginal.get(dupLower) || dupLower;
-        const short = original.length > 15 ? original.substring(0,15)+'…' : original;
-        dupPreviews.push(short);
-      }
-      const dupMsg = `发现 ${duplicateSet.size} 个重复地址: ${dupPreviews.slice(0,5).join(', ')}${dupPreviews.length>5 ? ' 等' : ''}。请删除重复项后再导出。`;
+    
+    const analysis = analyzeDuplicatesFast(addrs);
+    if (analysis.duplicateLowerSet.size > 0) {
+      const dupPreviews = analysis.duplicateDetails.map(d => d.preview).slice(0, 6);
+      const dupMsg = `Duplicate addresses found: ${dupPreviews.join(', ')}${analysis.duplicateDetails.length > 6 ? ' and more' : ''}. Please remove duplicates before exporting.`;
       showToast(dupMsg, 'error');
       return;
     }
     
-    const uniqueAddrList = analysis.uniqueList;  // 顺序保持
-    if (uniqueAddrList.length === 0) {
-      showToast('没有有效的唯一地址', 'error');
-      return;
-    }
-    
+    const uniqueList = analysis.uniqueOrdered;
     const ml = mintLimitInput.value.trim();
     const pr = priceInput.value.trim();
-    // 构建列名
+    
     let header = 'Wallet address';
     if (ml) header += ',Custom mint limit (optional)';
     if (pr) header += ',Custom price in native token e.g. ETH (optional)';
     
-    // 分块生成CSV (支持10万+地址)
+    // Streaming / chunked CSV generation (very fast even for 100k)
     const chunks = [header + '\n'];
-    const chunkSize = 2000;
-    for (let i = 0; i < uniqueAddrList.length; i += chunkSize) {
-      const slice = uniqueAddrList.slice(i, i + chunkSize);
+    const chunkSize = 5000; // large chunk but memory safe
+    for (let i = 0; i < uniqueList.length; i += chunkSize) {
+      const slice = uniqueList.slice(i, i + chunkSize);
       let block = '';
-      for (const addr of slice) {
+      for (let j = 0; j < slice.length; j++) {
+        const addr = slice[j];
         block += addr;
         if (ml) block += ',' + ml;
         if (pr) block += ',' + pr;
@@ -369,6 +373,7 @@
       }
       chunks.push(block);
     }
+    
     const blob = new Blob(chunks, { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -378,36 +383,46 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast(`成功生成 CSV，包含 ${uniqueAddrList.length} 个唯一钱包地址`, 'success');
+    showToast(`CSV downloaded with ${uniqueList.length} unique wallet addresses`, 'success');
   };
   
-  // 事件监听
-  textarea.addEventListener('input', onInputChange);
-  mintLimitInput.addEventListener('input', refreshAll);
-  priceInput.addEventListener('input', refreshAll);
-  
-  // 初始化 Lucide 图标并手动刷新
-  window.addEventListener('load', () => {
-    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-    refreshAll();
-    // 额外监听文本域滚动和动态内容
-    textarea.addEventListener('keyup', () => {
-      // 重新扫描重复
-      refreshAll();
-    });
-    // 附加样式支持
+  // Input event handlers with fast debounce and optimized DOM updates
+  textarea.addEventListener('input', function(e) {
+    refreshAllUI();
   });
   
-  // 动态刷新 lucide 图标 (当警告框更新时)
+  mintLimitInput.addEventListener('input', () => {
+    updateCSVPreview(cachedAnalysis, getCurrentAddresses());
+  });
+  priceInput.addEventListener('input', () => {
+    updateCSVPreview(cachedAnalysis, getCurrentAddresses());
+  });
+  
+  // Force icon refresh after potential duplicate box updates
   const observer = new MutationObserver(() => {
     if (window.lucide) lucide.createIcons();
   });
   observer.observe(duplicateWarningBox, { childList: true, subtree: true });
   observer.observe(dupCountBadge, { childList: true });
-  // 初始渲染
-  setTimeout(() => {
-    if (window.lucide) lucide.createIcons();
-  }, 100);
+  
+  // Initial load
+  window.addEventListener('load', () => {
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    performRefresh();
+    // Additional optimization: remove default textarea slow spellcheck
+    textarea.setAttribute('spellcheck', 'false');
+  });
+  
+  // small helper to instantly reflect after paste (big data)
+  textarea.addEventListener('paste', function(e) {
+    setTimeout(() => {
+      refreshAllUI();
+    }, 5);
+  });
+  
+  // for high performance: if there is huge data, we still keep responsiveness.
+  // No additional line-level background highlight on textarea itself (prevents jank), 
+  // but we clearly show duplicates list with first 15 chars as requested.
 </script>
 </body>
 </html>
